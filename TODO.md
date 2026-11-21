@@ -52,6 +52,12 @@ Remaining:
 - [ ] Block entity renderer: draw the fluid stream while pouring (`.../blockentities/ber`)
 - [ ] Real model and texture for the tap
 - [ ] Pouring sound or particles (the "satisfying to use" goal)
+- [ ] (Optional) Conditional ticker, so idle taps don't tick at all. Pairs well with a pouring model variant. Steps:
+  - [ ] Add `public static final BooleanProperty POURING = BooleanProperty.create("pouring")` to `SmartTapBlock`, add it in `createBlockStateDefinition`, and default it to `false` in the constructor
+  - [ ] Add `pouring=true/false` variants to `blockstates/smart_tap.json` (every facing × pouring combination)
+  - [ ] Whenever the block entity starts or stops pouring, also update the blockstate: `level.setBlock(worldPosition, getBlockState().setValue(SmartTapBlock.POURING, ...), Block.UPDATE_ALL)`
+  - [ ] In `getTicker`, return `null` when `state.getValue(POURING)` is false (Minecraft re-checks `getTicker` when the blockstate changes)
+  - [ ] Keep the early return in `serverTick` as a safety net, and decide whether the saved `pouring` field is still needed or the blockstate alone is enough
 
 ## 5. Redstone
 - [ ] Activate on a rising redstone edge (`neighborChanged` + `level.hasNeighborSignal`)
