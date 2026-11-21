@@ -2,6 +2,7 @@
   "itemGroup.smart_tap": "Smart Tap Tab",
   "block.smart_tap.example_block": "Example Block",
   "item.smart_tap.example_item": "Example Item",
+  "block.smart_tap.smart_tap": "Smart Tap",
 
   "smart_tap.configuration.title": "Smart Tap Configs",
   "smart_tap.configuration.section.smart_tap.common.toml": "Smart Tap Configs",

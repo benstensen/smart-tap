@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "all": "minecraft:block/iron_block",
+    "particle": "minecraft:block/iron_block"
+  },
+  "elements": [
+    { "__comment": "back plate", "from": [4, 6, 14], "to": [12, 14, 16], "faces": { "north": {"texture": "#all"}, "east": {"texture": "#all"}, "south": {"texture": "#all"}, "west": {"texture": "#all"}, "up": {"texture": "#all"}, "down": {"texture": "#all"} } },
+    { "__comment": "arm",        "from": [6, 10, 6], "to": [10, 13, 14], "faces": { "north": {"texture": "#all"}, "east": {"texture": "#all"}, "south": {"texture": "#all"}, "west": {"texture": "#all"}, "up": {"texture": "#all"}, "down": {"texture": "#all"} } },
+    { "__comment": "spout",      "from": [6, 6, 6],  "to": [10, 10, 9],  "faces": { "north": {"texture": "#all"}, "east": {"texture": "#all"}, "south": {"texture": "#all"}, "west": {"texture": "#all"}, "up": {"texture": "#all"}, "down": {"texture": "#all"} } }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "smart_tap:block/smart_tap" },
+    "facing=east":  { "model": "smart_tap:block/smart_tap", "y": 90 },
+    "facing=south": { "model": "smart_tap:block/smart_tap", "y": 180 },
+    "facing=west":  { "model": "smart_tap:block/smart_tap", "y": 270 }
+  }
+}
