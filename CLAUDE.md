@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Smart Tap (`mod_id=smart_tap`, package `dev.fishna.smarttap`) is a NeoForge mod for Minecraft 1.21.1 (Java 21), built with ModDevGradle (`net.neoforged.moddev`) and Parchment mappings. It is designed around an **optional** integration with the Productive Metalworks mod (`productivemetalworks`), with JEI available in dev.
 
-The Java sources are still largely the NeoForge MDK template (example block/item/creative tab, demo config values in `Config.java`, matching lang keys). Treat those as placeholders to replace, not established conventions.
+The design (features, decided pouring model, open questions) lives in `mindmap.md`; check it before implementing a feature. The user is learning modding and wants to write the feature logic themselves, so default to scaffolding, examples, and doc pointers rather than full implementations.
+
+The Smart Tap block lives in `block/` (`SmartTapBlock`, `SmartTapBlockEntity`) and is registered in `registry/ModRegistry`. `SmartTap.java` still contains the NeoForge MDK template's example block/item/creative tab, and `Config.java` has demo config values; treat those as placeholders to replace, not established conventions.
 
 ## Commands
 
