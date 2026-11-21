@@ -1,8 +1,8 @@
 package dev.fishna.smarttap.block;
 
-import net.minecraft.world.level.material.Fluid;
 import org.jetbrains.annotations.Nullable;
 
+import dev.fishna.smarttap.SmartTap;
 import dev.fishna.smarttap.registry.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -102,15 +102,23 @@ public class SmartTapBlockEntity extends BlockEntity {
     }
 
     public void pour(Player player, int tankIdx) {
+        // Don't start a new pour while still pouring or holding leftover fluid; otherwise the leftover
+        // would be poured on top of the amount calculated below.
+        if (!tank.isEmpty()) {
+            SmartTap.LOGGER.debug("Smart Tap at {}: still holding {} mB of {}",
+                    worldPosition, tank.getFluidAmount(), tank.getFluid().getHoverName().getString());
+            return;
+        }
+
         IFluidHandler source = getSourceHandler();
         if (source == null || source.getTanks() < tankIdx + 1) {
-            player.sendSystemMessage(Component.literal("No source was found to pour from, or there aren't enough fluids to reach the target of the pour."));
+            SmartTap.LOGGER.debug("Smart Tap at {}: no source to pour from, or source has no tank {}", worldPosition, tankIdx);
             return;
         }
 
         IFluidHandler target = getTargetHandler();
         if (target == null) {
-            player.sendSystemMessage(Component.literal("No target was found to pour into."));
+            SmartTap.LOGGER.debug("Smart Tap at {}: no target to pour into", worldPosition);
             return;
         }
 
@@ -122,39 +130,57 @@ public class SmartTapBlockEntity extends BlockEntity {
 
         int targetCap = getTargetCapacity(target, sourceFS);
         if (targetCap > sourceFS.getAmount()) {
-            player.sendSystemMessage(Component.literal("There isn't enough fluid to fill the target container (detected " + sourceFS.getAmount() + " mB of " + sourceFS.getHoverName().getString() + ")."));
+            SmartTap.LOGGER.debug("Smart Tap at {}: not enough fluid to fill the target (source has {} mB of {})",
+                    worldPosition, sourceFS.getAmount(), sourceFS.getHoverName().getString());
             return;
         }
 
         if (targetCap == 0) {
-            player.sendSystemMessage(Component.literal("The target container doesn't have space for this kind of fluid (" + sourceFS.getHoverName().getString() + ")."));
+            SmartTap.LOGGER.debug("Smart Tap at {}: target won't accept {}", worldPosition, sourceFS.getHoverName().getString());
+            return;
+        }
+
+        // Make sure the tap's own tank can hold the whole pour before taking anything from the source.
+        if (tank.fill(sourceFS.copyWithAmount(targetCap), FluidAction.SIMULATE) < targetCap) {
+            SmartTap.LOGGER.debug("Smart Tap at {}: target needs {} mB, but the tap can only hold {} mB",
+                    worldPosition, targetCap, tank.getCapacity());
             return;
         }
 
         // Drain fluid from source
         FluidStack toPour = source.drain(sourceFS.copyWithAmount(targetCap), FluidAction.EXECUTE);
-        player.sendSystemMessage(Component.literal("Target Capacity: " + targetCap + " mB\nAmount available to pour: " + toPour.getAmount() + " mB"));
+        SmartTap.LOGGER.debug("Smart Tap at {}: target capacity {} mB, drained {} mB from source",
+                worldPosition, targetCap, toPour.getAmount());
 
         // If we don't have enough fluid from source to fill target, refund remainder to source.
         if (toPour.getAmount() < targetCap) {
-            player.sendSystemMessage(Component.literal("Oops! Not enough fluid to fill the target capacity."));
+            SmartTap.LOGGER.debug("Smart Tap at {}: source gave less than expected ({} of {} mB), refunding",
+                    worldPosition, toPour.getAmount(), targetCap);
 
             // Refund the pour
             int difference = toPour.getAmount() - source.fill(toPour, FluidAction.EXECUTE);
-            /* TODO: Refund difference to tank */
+
+            // Whatever the source wouldn't take back stays in the tap as leftover.
+            if (difference > 0) {
+                int kept = tank.fill(toPour.copyWithAmount(difference), FluidAction.EXECUTE);
+                if (kept < difference) {
+                    SmartTap.LOGGER.warn("Smart Tap at {} lost {} mB of {} while refunding a short drain",
+                            worldPosition, difference - kept, toPour.getHoverName().getString());
+                }
+            }
 
             return;
         }
 
-        // Pour from source to tank
+        // Pour from source to tank (space was checked above, so this takes all of it)
         tank.fill(toPour, FluidAction.EXECUTE);
-        int tankToTargetAmt = target.fill(tank.getFluid(), FluidAction.SIMULATE);
 
-        FluidStack fromTank = tank.drain(tankToTargetAmt, FluidAction.EXECUTE);
-
-        // Pour from tank to target
-        int pourAmount = target.fill(fromTank, FluidAction.EXECUTE);
-        player.sendSystemMessage(Component.literal("Poured " + pourAmount + " mB of " + fromTank.getHoverName().getString() + "."));
+        // Pour from tank to target. The target goes first, then the tank gives up exactly what it accepted,
+        // so nothing is lost if the target takes less than expected. Pass copies: getFluid() is the tank's own stack.
+        int pourAmount = target.fill(tank.getFluid().copy(), FluidAction.EXECUTE);
+        FluidStack poured = tank.drain(pourAmount, FluidAction.EXECUTE);
+        SmartTap.LOGGER.debug("Smart Tap at {}: poured {} mB of {}",
+                worldPosition, poured.getAmount(), poured.getHoverName().getString());
     }
 
     /** Return the amount of the given fluid that a target IFluidHandler would accept.
