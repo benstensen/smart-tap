@@ -1,0 +1,13 @@
+{
+  "itemGroup.smart_tap": "Smart Tap Tab",
+  "block.smart_tap.example_block": "Example Block",
+  "item.smart_tap.example_item": "Example Item",
+
+  "smart_tap.configuration.title": "Smart Tap Configs",
+  "smart_tap.configuration.section.smart_tap.common.toml": "Smart Tap Configs",
+  "smart_tap.configuration.section.smart_tap.common.toml.title": "Smart Tap Configs",
+  "smart_tap.configuration.items": "Item List",
+  "smart_tap.configuration.logDirtBlock": "Log Dirt Block",
+  "smart_tap.configuration.magicNumberIntroduction": "Magic Number Text",
+  "smart_tap.configuration.magicNumber": "Magic Number"
+}
