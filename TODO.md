@@ -12,18 +12,30 @@ A rough order to build things in. Each phase builds on the ones before it. Desig
 - [X] Check that PM's drain will drain a non-bottom fluid: `source.drain(new FluidStack(<fluid in tank 1>, 90), SIMULATE)` should return that fluid at the full amount
 
 ## 1. Core pour (the minimum useful tap)
-- [ ] Replace `describeConnections` with an `activate()` method in `SmartTapBlockEntity`
-- [ ] Ignore activation if the tap's tank isn't empty (already pouring or holding leftover)
-- [ ] Compute how much the target needs (capacity − current amount)
-- [ ] Choose a fluid: for now, the first fluid in the drain that has enough
-- [ ] Dry-run (`SIMULATE`) the drain from the source **and** the fill into the target; bail out if either falls short
-- [ ] For real (`EXECUTE`): drain from the source into the tap's tank
-- [ ] Remember the pour target (position), so `serverTick` knows a pour is in progress
-- [ ] `serverTick`: each tick, fill the target with up to `flowRate` mB and drain only what it accepted
-- [ ] Stop when the tank is empty or the target stops accepting fluid
-- [ ] Hardcode `flowRate` for now (upgrades come later)
-- [ ] Test example workflows 1 and 2 (exact pour; the 2 ingots stay in the smeltery)
+Activation (`pour()`) already reserves the right amount safely: it probes the target with a simulated fill (PM's reported capacity is unreliable), enforces all-or-nothing, checks the tap's tank has room, drains the source, and refunds a short drain. What's left is turning the instant pass-through into a gradual pour.
+
+Done during phase 0:
+- [x] Activation method (`pour()`) called on right-click
+- [x] Ignore activation while the tap's tank isn't empty
+- [x] Work out how much the target needs with a simulated fill, not `getTankCapacity`
+- [x] All-or-nothing: bail out if the source has less than the target needs (the 2 ingots stay in the smeltery)
+- [x] Check the tap's tank can hold the whole pour before draining
+- [x] Drain from the source into the tap's tank, refunding (or keeping as leftover) anything from a short drain
+- [x] Tank → target transfer that only drains what the target accepted
+
+Remaining:
+- [ ] Split `pour()`: activation stops after filling the tap's tank; the tank → target step moves into `serverTick`
+- [ ] Add a saved `pouring` flag (`saveAdditional` / `loadAdditional`) so a pour resumes after a reload, and so "pouring" can be told apart from "holding leftover" (both have a non-empty tank)
+- [ ] `serverTick`: while pouring, offer `tank.getFluid().copyWithAmount(Math.min(flowRate, tank.getFluidAmount()))` to the target, then drain exactly what it accepted
+- [ ] Look up the target handler every tick (it can be broken or replaced mid-pour); `BlockCapabilityCache` is the efficient way once this works
+- [ ] Stop pouring when the tank is empty, or when the target is gone or accepts 0 (anything left becomes leftover, see phase 2)
+- [ ] Hardcode `flowRate` (mB per tick) for now; upgrades come in phase 7
+- [ ] Choose the fluid: loop over the source's tanks (bottom first) and pick the first one with enough for the target, instead of always using tank 0
+- [ ] Clean up: drop the unused `player` parameter from `pour()`, remove the commented-out calls in `SmartTapBlock`, and decide whether to keep `describeConnections` as a debug tool
+- [ ] Test example workflows 1 and 2 with PM (exact pour; leftovers stay in the smeltery)
+- [ ] Test example workflow 3 with PM (gold + iron; the tap should skip a fluid that doesn't have enough)
 - [ ] Test multiple taps on one foundry (example workflow 4)
+- [ ] Test breaking the target mid-pour: the remainder should stay in the tap, not vanish
 
 ## 2. Interrupted pours and leftovers
 - [ ] Target removed mid-pour: stop pouring and keep the leftover in the tank
