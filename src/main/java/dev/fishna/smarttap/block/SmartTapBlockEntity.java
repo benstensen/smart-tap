@@ -1,5 +1,6 @@
 package dev.fishna.smarttap.block;
 
+import net.minecraft.world.level.material.Fluid;
 import org.jetbrains.annotations.Nullable;
 
 import dev.fishna.smarttap.registry.ModRegistry;
@@ -15,6 +16,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 /**
@@ -93,6 +95,75 @@ public class SmartTapBlockEntity extends BlockEntity {
                         + target.getFluidInTank(i).getAmount() + " / " + target.getTankCapacity(i) + " mB"));
             }
         }
+    }
+
+    public void pour(Player player) {
+        pour(player, 0);
+    }
+
+    public void pour(Player player, int tankIdx) {
+        IFluidHandler source = getSourceHandler();
+        if (source == null || source.getTanks() < tankIdx + 1) {
+            player.sendSystemMessage(Component.literal("No source was found to pour from, or there aren't enough fluids to reach the target of the pour."));
+            return;
+        }
+
+        IFluidHandler target = getTargetHandler();
+        if (target == null) {
+            player.sendSystemMessage(Component.literal("No target was found to pour into."));
+            return;
+        }
+
+        // Probe to see if there's enough fluid for a full pour
+        FluidStack sourceFS = source.getFluidInTank(tankIdx);
+        if (sourceFS.isEmpty()) {
+            return;
+        }
+
+        int targetCap = getTargetCapacity(target, sourceFS);
+        if (targetCap > sourceFS.getAmount()) {
+            player.sendSystemMessage(Component.literal("There isn't enough fluid to fill the target container (detected " + sourceFS.getAmount() + " mB of " + sourceFS.getHoverName().getString() + ")."));
+            return;
+        }
+
+        if (targetCap == 0) {
+            player.sendSystemMessage(Component.literal("The target container doesn't have space for this kind of fluid (" + sourceFS.getHoverName().getString() + ")."));
+            return;
+        }
+
+        // Drain fluid from source
+        FluidStack toPour = source.drain(sourceFS.copyWithAmount(targetCap), FluidAction.EXECUTE);
+        player.sendSystemMessage(Component.literal("Target Capacity: " + targetCap + " mB\nAmount available to pour: " + toPour.getAmount() + " mB"));
+
+        // If we don't have enough fluid from source to fill target, refund remainder to source.
+        if (toPour.getAmount() < targetCap) {
+            player.sendSystemMessage(Component.literal("Oops! Not enough fluid to fill the target capacity."));
+
+            // Refund the pour
+            int difference = toPour.getAmount() - source.fill(toPour, FluidAction.EXECUTE);
+            /* TODO: Refund difference to tank */
+
+            return;
+        }
+
+        // Pour from source to tank
+        tank.fill(toPour, FluidAction.EXECUTE);
+        int tankToTargetAmt = target.fill(tank.getFluid(), FluidAction.SIMULATE);
+
+        FluidStack fromTank = tank.drain(tankToTargetAmt, FluidAction.EXECUTE);
+
+        // Pour from tank to target
+        int pourAmount = target.fill(fromTank, FluidAction.EXECUTE);
+        player.sendSystemMessage(Component.literal("Poured " + pourAmount + " mB of " + fromTank.getHoverName().getString() + "."));
+    }
+
+    /** Return the amount of the given fluid that a target IFluidHandler would accept.
+     *  @param target The IFluidHandler for the target of the pour
+     *  @param fluidStack The FluidStack for the fluid that would be poured
+     * */
+    private int getTargetCapacity(IFluidHandler target, FluidStack fluidStack) {
+        FluidStack tMaxFluidStack = fluidStack.copyWithAmount(fluidStack.getAmount() + 1);
+        return target.fill(tMaxFluidStack, FluidAction.SIMULATE);
     }
 
     // ---- Saving / loading ----

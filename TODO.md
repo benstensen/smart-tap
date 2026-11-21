@@ -4,9 +4,12 @@ A rough order to build things in. Each phase builds on the ones before it. Desig
 
 ## 0. Check your assumptions
 - [x] Tap finds the drain behind it and the container below it
-- [ ] Check reported capacity of an **empty** basin and casting table, for both Tinkers' and Productive Metalworks
-- [ ] Check what an empty casting table reports when no cast is on it (it should refuse to pour)
-- [ ] Check which fluid(s) a drain exposes when the smeltery holds two metals (example workflow 3)
+- [X] Check reported capacity of an **empty** basin and casting table, for both Tinkers' and Productive Metalworks
+- [X] Check what an empty casting table reports when no cast is on it (it should refuse to pour)
+- [X] Check which fluid(s) a drain exposes when the smeltery holds two metals (example workflow 3)
+- [X] PM reports a flat 1000 mB capacity, so check whether a dry-run fill reveals the real amount: `target.fill(new FluidStack(fluid, 1000), SIMULATE)` against a basin, a table with an ingot cast, and a partially filled table. If it returns the recipe amount, use that instead of capacity; if not, fall back to looking up PM's casting recipe (phase 12)
+- [X] Record what a table **without a cast** returns from a dry-run fill (expect 0)
+- [X] Check that PM's drain will drain a non-bottom fluid: `source.drain(new FluidStack(<fluid in tank 1>, 90), SIMULATE)` should return that fluid at the full amount
 
 ## 1. Core pour (the minimum useful tap)
 - [ ] Replace `describeConnections` with an `activate()` method in `SmartTapBlockEntity`
@@ -77,6 +80,7 @@ A rough order to build things in. Each phase builds on the ones before it. Desig
 
 ## 12. Integrations
 - [ ] Tinkers' Construct: test against its drains and casting blocks
+  - [ ] Repeat the phase 0 checks for Tinkers' (capacity, dry-run fill, table without a cast, which fluids the drain exposes and drains)
 - [ ] Productive Metalworks: test against its drains and casting blocks
 - [ ] Generic: works with any block exposing `IFluidHandler`
 - [ ] Keep optional-mod code behind `ModList.get().isLoaded(...)` checks

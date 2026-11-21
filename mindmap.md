@@ -102,7 +102,11 @@ How a pour works end to end. These decisions resolve several of the snags below.
 - Target removed or filled mid-pour.
   - Decided: poured fluid stays in the target; the tap keeps the leftover (see Pouring model).
 - To verify: what capacity do Tinkers' / Productive Metalworks casting basins and tables report before any fluid is in them? They may only know their capacity once a recipe matches.
+  - Productive Metalworks: 1000mB (for both basins & tables). This is also the case when the basin is partially filled with fluid, and when a table has a cast in it. I can get the target capacity by running `target.fill(<...>, FluidAction.SIMULATE)` and seeing what the function returns. A table without a cast returns 0. I can use `source.drain()` to drain fluids other than the bottom fluid. 
+  - Tinker's: I'm not checking this right now.
 - To verify: which fluid(s) a drain exposes (Tinkers' drains typically expose only the bottom fluid). Affects example workflow 3 and filters.
+  - Productive Metalworks: Get tanks seems to return the total number of fluid types in the foundry. Fluids are numbered from the bottom up (bottom fluid == 0, fluid above that == 1, etc.).
+  - Tinker's: I'm not checking this right now.
 
 ## Example workflows
 Concrete scenarios the design should handle well:
