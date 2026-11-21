@@ -169,6 +169,9 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     runtimeOnly "curse.maven:mezz-config-${mezz_config_project_id}:${mezz_config_file_id}"
+
+    // Jade: in-game tooltips (fluid amounts etc.) for development only. localRuntime keeps it out of published deps.
+    localRuntime "maven.modrinth:jade:${jade_version}"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
