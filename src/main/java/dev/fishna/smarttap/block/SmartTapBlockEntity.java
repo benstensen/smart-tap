@@ -8,8 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -129,36 +127,6 @@ public class SmartTapBlockEntity extends BlockEntity {
     public @Nullable IFluidHandler getTargetHandler() {
         if (level == null) return null;
         return level.getCapability(Capabilities.FluidHandler.BLOCK, worldPosition.below(), Direction.UP);
-    }
-
-    /**
-     * EXAMPLE: prints what the tap can see. Shows how to read fluids from neighbouring blocks.
-     * Replace with real pouring once you're comfortable with IFluidHandler.
-     */
-    public void describeConnections(Player player) {
-        IFluidHandler source = getSourceHandler();
-        if (source == null) {
-            player.sendSystemMessage(Component.literal("No fluid source behind the tap"));
-        } else {
-            for (int i = 0; i < source.getTanks(); i++) {
-                FluidStack fluid = source.getFluidInTank(i);
-                if (!fluid.isEmpty()) {
-                    player.sendSystemMessage(Component.literal("Source: ")
-                            .append(fluid.getHoverName())
-                            .append(" " + fluid.getAmount() + " mB"));
-                }
-            }
-        }
-
-        IFluidHandler target = getTargetHandler();
-        if (target == null) {
-            player.sendSystemMessage(Component.literal("No fluid container below the tap"));
-        } else {
-            for (int i = 0; i < target.getTanks(); i++) {
-                player.sendSystemMessage(Component.literal("Target tank " + i + ": "
-                        + target.getFluidInTank(i).getAmount() + " / " + target.getTankCapacity(i) + " mB"));
-            }
-        }
     }
 
     public void pour() {

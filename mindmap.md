@@ -40,6 +40,7 @@ How a pour works end to end. These decisions resolve several of the snags below.
 - Target based on fluid ID.
 - Whitelist / blacklist.
 - Probably no mixed AND / OR filter expressions.
+- Decided: by default (no filter), the tap always pours the bottom fluid (tank 0), like a Tinkers' faucet. Filters and automatic modes make pours configurable, so they can target other fluids in the drain.
 
 ### Pour until
 - (No sub-notes; the condition for stopping a pour is still to be defined.)

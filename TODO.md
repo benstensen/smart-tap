@@ -12,7 +12,7 @@ A rough order to build things in. Each phase builds on the ones before it. Desig
 - [X] Check that PM's drain will drain a non-bottom fluid: `source.drain(new FluidStack(<fluid in tank 1>, 90), SIMULATE)` should return that fluid at the full amount
 
 ## 1. Core pour (the minimum useful tap)
-Activation (`pour()`) already reserves the right amount safely: it probes the target with a simulated fill (PM's reported capacity is unreliable), enforces all-or-nothing, checks the tap's tank has room, drains the source, and refunds a short drain. What's left is turning the instant pass-through into a gradual pour.
+Activation (`pour()`) already reserves the right amount safely: it probes the target with a simulated fill (PM's reported capacity is unreliable), enforces all-or-nothing, checks the tap's tank has room, and reserves the pour into the tap's tank; `serverTick` then pours it gradually at `flowRate`. By default it pours the bottom fluid. Phase 1 is complete, and example workflows 1–4 are tested with PM.
 
 Done during phase 0:
 - [x] Activation method (`pour()`) called on right-click
@@ -24,21 +24,27 @@ Done during phase 0:
 - [x] Tank → target transfer that only drains what the target accepted
 
 Remaining:
-- [ ] Split `pour()`: activation stops after filling the tap's tank; the tank → target step moves into `serverTick`
-- [ ] Add a saved `pouring` flag (`saveAdditional` / `loadAdditional`) so a pour resumes after a reload, and so "pouring" can be told apart from "holding leftover" (both have a non-empty tank)
-- [ ] `serverTick`: while pouring, offer `tank.getFluid().copyWithAmount(Math.min(flowRate, tank.getFluidAmount()))` to the target, then drain exactly what it accepted
-- [ ] Look up the target handler every tick (it can be broken or replaced mid-pour); `BlockCapabilityCache` is the efficient way once this works
-- [ ] Stop pouring when the tank is empty, or when the target is gone or accepts 0 (anything left becomes leftover, see phase 2)
-- [ ] Hardcode `flowRate` (mB per tick) for now; upgrades come in phase 7
-- [ ] Choose the fluid: loop over the source's tanks (bottom first) and pick the first one with enough for the target, instead of always using tank 0
-- [ ] Clean up: drop the unused `player` parameter from `pour()`, remove the commented-out calls in `SmartTapBlock`, and decide whether to keep `describeConnections` as a debug tool
-- [ ] Test example workflows 1 and 2 with PM (exact pour; leftovers stay in the smeltery)
-- [ ] Test example workflow 3 with PM (gold + iron; the tap should skip a fluid that doesn't have enough)
-- [ ] Test multiple taps on one foundry (example workflow 4)
-- [ ] Test breaking the target mid-pour: the remainder should stay in the tap, not vanish
+- [x] `transfer(from, to, request)` helper: simulates both sides, moves what both agree on, refunds anything the target refuses, and logs if fluid is ever lost. Activation and `serverTick` both use it
+- [x] Split `pour()`: activation stops after filling the tap's tank; the tank → target step moves into `serverTick`
+- [x] Add a saved `pouring` flag (`saveAdditional` / `loadAdditional`) so a pour resumes after a reload, and so "pouring" can be told apart from "holding leftover" (both have a non-empty tank)
+- [x] `serverTick`: while pouring, offer `tank.getFluid().copyWithAmount(Math.min(flowRate, tank.getFluidAmount()))` to the target, then drain exactly what it accepted
+- [x] Look up the target handler every tick (it can be broken or replaced mid-pour)
+  - [ ] (Optional, later) Switch to `BlockCapabilityCache` for the source and target lookups
+- [x] Stop pouring when the tank is empty, or when the target is gone or accepts 0 (anything left becomes leftover, see phase 2)
+- [x] Hardcode `flowRate` (mB per tick) for now; upgrades come in phase 7
+- [x] Expose a read-only view of the tank to Jade (unsided capability only)
+- [x] Default fluid: always pour the bottom fluid (tank 0). Targeting other tanks comes with filters and automatic modes (phase 8)
+- [x] Clean up:
+  - [x] Drop the unused `player` parameter from `pour()`
+  - [X] Remove the commented-out calls in `SmartTapBlock`
+  - [X] Decide whether to keep `describeConnections` as a debug tool
+- [X] Test example workflows 1 and 2 with PM (exact pour; leftovers stay in the smeltery)
+- [X] Test example workflow 3 with PM (gold + iron): the tap pours only the bottom fluid, and does nothing if the bottom fluid doesn't have enough for the target
+- [X] Test multiple taps on one foundry (example workflow 4)
+- [X] Test breaking the target mid-pour: the remainder should stay in the tap, not vanish
 
 ## 2. Interrupted pours and leftovers
-- [ ] Target removed mid-pour: stop pouring and keep the leftover in the tank
+- [x] Target removed mid-pour: stop pouring and keep the leftover in the tank (done and tested in phase 1)
 - [ ] Target replaced: push the leftover into the new target (on activation, or automatically?)
 - [ ] Decide what activation does while holding leftover fluid that doesn't match the new target
 
@@ -81,7 +87,7 @@ Remaining:
 ## 8. Fluid filters
 - [ ] Whitelist / blacklist by fluid ID
 - [ ] Filter UI (ghost slots or a fluid picker)
-- [ ] Use the filter when choosing which fluid to pour (phase 1's "first fluid with enough")
+- [ ] Configurable fluid selection: filtered and automatic pours can target tanks other than the bottom one (`pour(int tankIdx)` already takes an index). Decide the rule, e.g. the first matching fluid (bottom first) with enough for the target
 - [ ] Test example workflow 3 (gold + iron)
 
 ## 9. Pour until

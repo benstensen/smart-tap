@@ -102,9 +102,6 @@ public class SmartTapBlock extends HorizontalDirectionalBlock implements EntityB
                 // TODO: open the settings screen (see "Menus" + "Screens" docs)
                 player.displayClientMessage(Component.literal("Settings: not implemented yet"), true);
             } else {
-                // TODO: replace this example with starting a pour
-//                tap.describeConnections(player);
-//                tap.dryRunPour(player);
                 tap.pour();
             }
         }
