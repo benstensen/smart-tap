@@ -192,6 +192,37 @@ public class SmartTapBlockEntity extends BlockEntity {
         return target.fill(tMaxFluidStack, FluidAction.SIMULATE);
     }
 
+    /**
+     * Moves up to `request` from `from` to `to`, and returns what was actually moved ({@link FluidStack#EMPTY} if nothing).
+     * Only loses fluid if `to` accepts less than it promised and `from` then refuses the refund; that case is logged.
+     */
+    private FluidStack transfer(IFluidHandler from, IFluidHandler to, FluidStack request) {
+        // Simulate draining request from `from`, and simulate filling `to`. Take smaller amount to move.
+        FluidStack simulatedFromDrain = from.drain(request, FluidAction.SIMULATE);
+        int amountToMove = Math.min(simulatedFromDrain.getAmount(), to.fill(simulatedFromDrain, FluidAction.SIMULATE));
+
+        // Return EMPTY if there's nothing to move.
+        if (amountToMove == 0) {
+            return FluidStack.EMPTY;
+        }
+
+        // Move the fluid, FOR REAL THIS TIME :3
+        FluidStack drainedFrom = from.drain(request.copyWithAmount(amountToMove), FluidAction.EXECUTE);
+        int filledAmount = to.fill(drainedFrom, FluidAction.EXECUTE);
+
+        // `to` accepted less than its simulation said, so put the rest back where it came from.
+        int difference = drainedFrom.getAmount() - filledAmount;
+        if (difference > 0) {
+            int refundedAmount = from.fill(drainedFrom.copyWithAmount(difference), FluidAction.EXECUTE);
+            if (refundedAmount < difference) {
+                SmartTap.LOGGER.warn("Smart Tap at {} lost {} mB of {}: target accepted less than simulated and the source refused the refund",
+                        worldPosition, difference - refundedAmount, drainedFrom.getHoverName().getString());
+            }
+        }
+
+        return filledAmount == 0 ? FluidStack.EMPTY : drainedFrom.copyWithAmount(filledAmount);
+    }
+
     // ---- Saving / loading ----
     // Anything not written here is lost when the chunk unloads or the world closes.
 
