@@ -45,6 +45,52 @@ public class SmartTapBlockEntity extends BlockEntity {
         return tank;
     }
 
+    /**
+     * A look-but-don't-touch view of the tank, exposed as a capability so tools like Jade can show its contents.
+     * Fill and drain always do nothing, so pipes and other taps can't push into or pull out of the tap.
+     * Registered in ModRegistry#registerCapabilities.
+     */
+    private final IFluidHandler readOnlyTank = new IFluidHandler() {
+        @Override
+        public int getTanks() {
+            return tank.getTanks();
+        }
+
+        @Override
+        public FluidStack getFluidInTank(int index) {
+            return tank.getFluidInTank(index).copy(); // a copy, so callers can't change the real tank
+        }
+
+        @Override
+        public int getTankCapacity(int index) {
+            return tank.getTankCapacity(index);
+        }
+
+        @Override
+        public boolean isFluidValid(int index, FluidStack stack) {
+            return false;
+        }
+
+        @Override
+        public int fill(FluidStack resource, FluidAction action) {
+            return 0;
+        }
+
+        @Override
+        public FluidStack drain(FluidStack resource, FluidAction action) {
+            return FluidStack.EMPTY;
+        }
+
+        @Override
+        public FluidStack drain(int maxDrain, FluidAction action) {
+            return FluidStack.EMPTY;
+        }
+    };
+
+    public IFluidHandler getReadOnlyTank() {
+        return readOnlyTank;
+    }
+
     /** Called every tick (20/s) on the server only. See SmartTapBlock#getTicker. */
     public void serverTick() {
         if (!pouring) return;

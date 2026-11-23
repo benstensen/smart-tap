@@ -68,6 +68,7 @@ Remaining:
 - [ ] Show the tap's tank contents
 - [ ] "Empty tap" button (client → server payload, `.../networking/payload`)
 - [ ] Where should emptied fluid go? (back into the drain? voided?)
+- [ ] If emptying (or anything else) changes what the tap exposes as a capability (see `ModRegistry#registerCapabilities`), call `level.invalidateCapabilities(worldPosition)` whenever it changes, since NeoForge and other mods cache capability lookups
 
 ## 7. Upgrades (Pipez-style)
 - [ ] Decide on tiers, names and flow rates

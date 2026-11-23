@@ -10,6 +10,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -48,5 +50,22 @@ public final class ModRegistry {
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
         BLOCK_ENTITY_TYPES.register(modEventBus);
+        modEventBus.addListener(ModRegistry::registerCapabilities);
+    }
+
+    /**
+     * Tells NeoForge which capabilities our block entities offer.
+     * Docs: https://docs.neoforged.net/docs/1.21.1/datastorage/capabilities#registering-capabilities
+     */
+    private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        // Only answer unsided (null) queries, which is what Jade uses. Pipes and other taps always ask with a
+        // side, so they see nothing here. The view is read-only anyway, as a second line of defence.
+        //
+        // CACHING: NeoForge and other mods (via BlockCapabilityCache) may cache what this returns. If what we
+        // expose ever changes at runtime (a different handler, or which sides get one), call
+        // level.invalidateCapabilities(pos) when it changes, or callers keep using the old answer.
+        // Docs: https://docs.neoforged.net/docs/1.21.1/datastorage/capabilities#block-capability-invalidation
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, SMART_TAP_BE.get(),
+                (tap, side) -> side == null ? tap.getReadOnlyTank() : null);
     }
 }
