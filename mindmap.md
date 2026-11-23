@@ -16,8 +16,19 @@ How a pour works end to end. These decisions resolve several of the snags below.
 - **Interrupted pour (target removed / filled by something else):**
   - Fluid already poured into the target stays in the target.
   - The tap keeps the leftover in its internal tank.
-  - If the target is replaced, the tap can push the leftover into it.
   - A UI option lets you empty the tap's contents.
+- **Leftovers and replaced targets (decided):**
+  - Core rule: a pour only starts if it will fill the target. With tap amount x, target amount y and full recipe amount z, every pour that starts ends with x + y = z.
+  - Partly filled targets (y > 0) already satisfy this: the simulated-fill probe returns z − y, so the tap pours exactly the remainder.
+  - Replacing the target does **not** start a pour on its own. The tap waits for activation (right click, later redstone).
+  - Activation while holding leftover:
+    1. **Return first (primary):** push the leftover back into the drain. If it all goes back, continue with a normal pour (same rules as always, bottom fluid by default).
+    2. **Top up (fallback, if the drain won't take it back):** treat the leftover as already reserved. If it covers what the new target needs, pour that and keep the rest. If not, draw the missing amount of the **same fluid** from the drain, all-or-nothing. If the drain doesn't have enough, or the target won't accept that fluid, do nothing.
+    3. **Neither works:** do nothing and tell the player why (e.g. an action bar message). The "Empty tap" UI button is the manual way out.
+  - Every trigger behaves the same way: either a pour that fills the target, or nothing. This keeps the tap safe for automation.
+  - Open: is it OK that one activation can return the leftover and then not pour (e.g. the bottom fluid doesn't have enough)? Leaning yes, since the tap ends up clean.
+  - Open: when player feedback goes in (action bar now, or wait for the UI)?
+  - To verify: does the PM drain (and later Tinkers') accept fluid pushed into it? `source.fill(leftover, SIMULATE)`. If not, the fallback is effectively the only path.
 
 ## Motivation
 - It's annoying to automate pouring from a foundry / smeltery, to the point where I don't even want to use it for ore doubling.
@@ -102,6 +113,7 @@ How a pour works end to end. These decisions resolve several of the snags below.
   - Handled by computing the remaining capacity (capacity minus current amount) on activation.
 - Target removed or filled mid-pour.
   - Decided: poured fluid stays in the target; the tap keeps the leftover (see Pouring model).
+  - Decided: on the next activation, the leftover goes back to the drain, or tops up the next pour if the drain won't take it (see "Leftovers and replaced targets").
 - To verify: what capacity do Tinkers' / Productive Metalworks casting basins and tables report before any fluid is in them? They may only know their capacity once a recipe matches.
   - Productive Metalworks: 1000mB (for both basins & tables). This is also the case when the basin is partially filled with fluid, and when a table has a cast in it. I can get the target capacity by running `target.fill(<...>, FluidAction.SIMULATE)` and seeing what the function returns. A table without a cast returns 0. I can use `source.drain()` to drain fluids other than the bottom fluid. 
   - Tinker's: I'm not checking this right now.

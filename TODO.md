@@ -45,8 +45,20 @@ Remaining:
 
 ## 2. Interrupted pours and leftovers
 - [x] Target removed mid-pour: stop pouring and keep the leftover in the tank (done and tested in phase 1)
-- [ ] Target replaced: push the leftover into the new target (on activation, or automatically?)
-- [ ] Decide what activation does while holding leftover fluid that doesn't match the new target
+Design: see "Leftovers and replaced targets" in `mindmap.md`. Rule: a pour only starts if it will fill the target; replacing the target never starts a pour by itself.
+- [x] Decide what activation does while holding leftover (return first, top up as a fallback, otherwise do nothing)
+- [ ] Check your assumptions: does PM's drain accept fluid pushed into it? `source.fill(<leftover>, SIMULATE)` with a foundry that has room, and with a full one. Record the result in `mindmap.md`
+- [ ] Return first: in `pour()`, replace the "still holding leftover" early return with `transfer(tank, source, tank.getFluid().copy())`. If the tank is now empty, carry on with the normal pour
+- [ ] Top up (fallback when the drain won't take everything back):
+  - [ ] Work out `need = getTargetCapacity(target, <leftover>)`. If it's 0, do nothing (the target won't take that fluid)
+  - [ ] Leftover ≥ need: reserve nothing new, just start pouring (`serverTick` stops once the target is full, and the rest stays as leftover)
+  - [ ] Leftover < need: probe that the drain has `need − leftover` of the **same fluid** (not just tank 0), then reserve it with `transfer`, all-or-nothing (send it back if it comes up short)
+- [ ] Neither works: do nothing, and log why (player feedback comes later)
+- [ ] Don't start a new activation while `pouring` is true (the tank isn't empty then, so make sure the leftover logic doesn't treat an in-progress pour as leftover)
+- [ ] Decide on player feedback for "didn't pour" cases: action bar message now, or wait for the UI (phase 6)
+- [ ] Test: break the target mid-pour, place a new empty one, activate. The leftover should go back to the drain and a full pour should start
+- [ ] Test: same, but with the drain full or unable to accept fluid. The pour should be topped up from the drain, or nothing should happen
+- [ ] Test: leftover of a fluid the new target won't accept (find a cast with no recipe for it). It should go back to the drain, or nothing should happen
 
 ## 3. Persistence
 - [ ] Keep the tank's contents when the tap is broken (data components: `collectImplicitComponents` / `applyImplicitComponents`)
