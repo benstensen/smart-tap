@@ -105,7 +105,7 @@ public class SmartTapBlock extends HorizontalDirectionalBlock implements EntityB
                 // TODO: replace this example with starting a pour
 //                tap.describeConnections(player);
 //                tap.dryRunPour(player);
-                tap.pour(player);
+                tap.pour();
             }
         }
         return InteractionResult.CONSUME;

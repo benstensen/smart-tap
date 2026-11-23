@@ -34,6 +34,9 @@ public class SmartTapBlockEntity extends BlockEntity {
         }
     };
 
+    private boolean pouring = false;
+    private int flowRate = 20; // mB per tick
+
     public SmartTapBlockEntity(BlockPos pos, BlockState state) {
         super(ModRegistry.SMART_TAP_BE.get(), pos, state);
     }
@@ -44,7 +47,22 @@ public class SmartTapBlockEntity extends BlockEntity {
 
     /** Called every tick (20/s) on the server only. See SmartTapBlock#getTicker. */
     public void serverTick() {
-        // TODO: pouring logic goes here
+        if (!pouring) return;
+
+        IFluidHandler target = getTargetHandler();
+        if (target == null) {
+            pouring = false;
+            setChanged();
+            return;
+        }
+
+        FluidStack moved = transfer(tank, target, tank.getFluid().copyWithAmount(Math.min(flowRate, tank.getFluidAmount())));
+
+        // Done when the tank is empty, or the target stopped accepting (anything left stays as leftover).
+        if (moved.isEmpty() || tank.isEmpty()) {
+            pouring = false;
+            setChanged();
+        }
     }
 
     // ---- Neighbours ----
@@ -97,11 +115,11 @@ public class SmartTapBlockEntity extends BlockEntity {
         }
     }
 
-    public void pour(Player player) {
-        pour(player, 0);
+    public void pour() {
+        pour(0);
     }
 
-    public void pour(Player player, int tankIdx) {
+    public void pour(int tankIdx) {
         // Don't start a new pour while still pouring or holding leftover fluid; otherwise the leftover
         // would be poured on top of the amount calculated below.
         if (!tank.isEmpty()) {
@@ -147,40 +165,24 @@ public class SmartTapBlockEntity extends BlockEntity {
             return;
         }
 
-        // Drain fluid from source
-        FluidStack toPour = source.drain(sourceFS.copyWithAmount(targetCap), FluidAction.EXECUTE);
-        SmartTap.LOGGER.debug("Smart Tap at {}: target capacity {} mB, drained {} mB from source",
-                worldPosition, targetCap, toPour.getAmount());
+        // Reserve the whole pour: move it from the source into the tap's tank.
+        FluidStack reserved = transfer(source, tank, sourceFS.copyWithAmount(targetCap));
+        SmartTap.LOGGER.debug("Smart Tap at {}: target capacity {} mB, reserved {} mB from source",
+                worldPosition, targetCap, reserved.getAmount());
 
-        // If we don't have enough fluid from source to fill target, refund remainder to source.
-        if (toPour.getAmount() < targetCap) {
-            SmartTap.LOGGER.debug("Smart Tap at {}: source gave less than expected ({} of {} mB), refunding",
-                    worldPosition, toPour.getAmount(), targetCap);
-
-            // Refund the pour
-            int difference = toPour.getAmount() - source.fill(toPour, FluidAction.EXECUTE);
-
+        // All-or-nothing: if the source gave less than the target needs, send it all back.
+        if (reserved.getAmount() < targetCap) {
+            FluidStack returned = transfer(tank, source, reserved);
             // Whatever the source wouldn't take back stays in the tap as leftover.
-            if (difference > 0) {
-                int kept = tank.fill(toPour.copyWithAmount(difference), FluidAction.EXECUTE);
-                if (kept < difference) {
-                    SmartTap.LOGGER.warn("Smart Tap at {} lost {} mB of {} while refunding a short drain",
-                            worldPosition, difference - kept, toPour.getHoverName().getString());
-                }
-            }
-
+            SmartTap.LOGGER.debug("Smart Tap at {}: source gave less than expected ({} of {} mB), returned {} mB, keeping {} mB as leftover",
+                    worldPosition, reserved.getAmount(), targetCap, returned.getAmount(), reserved.getAmount() - returned.getAmount());
             return;
         }
 
-        // Pour from source to tank (space was checked above, so this takes all of it)
-        tank.fill(toPour, FluidAction.EXECUTE);
-
-        // Pour from tank to target. The target goes first, then the tank gives up exactly what it accepted,
-        // so nothing is lost if the target takes less than expected. Pass copies: getFluid() is the tank's own stack.
-        int pourAmount = target.fill(tank.getFluid().copy(), FluidAction.EXECUTE);
-        FluidStack poured = tank.drain(pourAmount, FluidAction.EXECUTE);
-        SmartTap.LOGGER.debug("Smart Tap at {}: poured {} mB of {}",
-                worldPosition, poured.getAmount(), poured.getHoverName().getString());
+        pouring = true;
+        setChanged();
+        SmartTap.LOGGER.debug("Smart Tap at {}: started pouring {} mB of {}",
+                worldPosition, reserved.getAmount(), reserved.getHoverName().getString());
     }
 
     /** Return the amount of the given fluid that a target IFluidHandler would accept.
@@ -230,11 +232,13 @@ public class SmartTapBlockEntity extends BlockEntity {
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("Tank", tank.writeToNBT(registries, new CompoundTag()));
+        tag.putBoolean("Pouring", pouring);
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         tank.readFromNBT(registries, tag.getCompound("Tank"));
+        pouring = tag.getBoolean("Pouring");
     }
 }
