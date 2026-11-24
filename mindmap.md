@@ -54,7 +54,8 @@ How a pour works end to end. These decisions resolve several of the snags below.
 - Decided: by default (no filter), the tap always pours the bottom fluid (tank 0), like a Tinkers' faucet. Filters and automatic modes make pours configurable, so they can target other fluids in the drain.
 
 ### Pour until
-- (No sub-notes; the condition for stopping a pour is still to be defined.)
+- (The condition for stopping a pour is still to be defined.)
+- Idea: "until the foundry can't fill the target any more" (see example workflow 5, "Cast everything").
 
 ### Fluid reservation
 - Purpose: ensure that something can get fully poured.
@@ -127,3 +128,8 @@ Concrete scenarios the design should handle well:
 2. I have 5 blocks and 2 ingots of iron in the smeltery.
 3. I have 3 gold ingots and 5 blocks + 2 ingots of iron in the smeltery.
 4. Multiple smart taps on the same foundry.
+5. (Pie in the sky) "Cast everything": the foundry holds several fluids. I activate the tap once over a basin with a hopper underneath, which pulls each block out once it has cooled. The tap keeps working until no fluid left in the foundry has enough for another full block.
+   - The tap pours, waits for the block to cool and be pulled out, then pours again. While the basin is busy, its simulated fill returns 0, so in this mode "target accepts 0" means "wait", not "stop".
+   - It works through all fluids, not just the bottom one (see Fluid filters), and skips any that can't fill the target.
+   - It stops when no fluid has enough for a full pour. Leftovers smaller than one block stay in the foundry, which is the all-or-nothing rule applied over and over.
+   - Related: Pour until, Redstone control, Preset modes. It could be a preset mode ("cast everything") built on a "pour until" condition.

@@ -132,3 +132,4 @@ Design: see "Leftovers and replaced targets" in `mindmap.md`. Rule: a pour only 
 
 ## Later / stretch
 - [ ] Scripting (inspired by Super Factory Manager)
+- [ ] "Cast everything" mode (example workflow 5 in `mindmap.md`): one activation keeps pouring full blocks, across all fluids, until none has enough. Needs: a mode that waits instead of stopping while the target is busy (simulated fill returns 0 while the block cools), a way to notice the target is free again (check each tick, or every N ticks), and fluid selection beyond tank 0 (phase 8). Probably builds on Pour until (phase 9) and presets (phase 10)
